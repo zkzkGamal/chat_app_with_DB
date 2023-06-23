@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Lobby</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        .right{
+            padding: 10px;
+            margin: 5px;
+            justify-content: right;
+            display: flex;
+        }
+        .left{
+            text-align: left;
+            margin: 5px;
+            padding: 10px;
+
+        }
+    </style>
+</head>
+<body>
+    <h1>Lets chat! {{request.user}}</h1>
+
+    <form id="form">
+        <input type="text" name="message"/>
+    </form>
+
+    <div id="messages">
+        {%for ch in chat%}
+        <div>
+            <p class='left'><span style="color:blue">{{ch.user.username}}</span>
+                <!-- {% autoescape off %} -->
+                :{{ch.message}}
+                <!-- {% endautoescape %} -->
+            </p>
+        </div>
+        <div>
+            {%if ch.server_message%}
+            <p class='right'><span style="color:blue">server</span>: <span id="srv_msg">
+                <!-- {% autoescape off %} -->
+                 : {{ch.server_message}} <br>
+                 <!-- {% endautoescape %} -->
+                </span></p>
+            {%else%}
+            {%endif%}
+        </div>
+        {%endfor%}
+    </div>
+
+    <script type="text/javascript">
+        let url = `ws://${window.location.host}/ws/socket-server/`
+        srv_msg = ''
+        const chatSocket = new WebSocket(url)
+
+        chatSocket.onmessage = function(e){
+            let data = JSON.parse(e.data)
+            console.log('Data:', data)
+
+            if(data.type === 'chat'){
+                let messages = document.getElementById('messages')
+                if(data.username == 'server'){
+                    messages.insertAdjacentHTML('beforeend', `<div>
+                        <p class='right'><span style="color:blue">${data.username}</span> :<span id="srv_msg"> ${data.message}</span></p>
+                    </div>`)
+                    srv_msg = data.message
+                    console.log(srv_msg)
+                }else{
+                    messages.insertAdjacentHTML('beforeend', `<div>
+                        <p class='left'><span style="color:blue">${data.username}</span> :${data.message}</p>
+                    </div>`)
+                }
+                
+            }
+        }
+
+        // getData = function(){
+        //     data = "{{chat}}"
+        //     data.foreach((item , i) => {
+        //         console.log(item)
+        //     })
+        //     console.log(data)
+        // }
+
+        // getData()
+
+        let form = document.getElementById('form')
+        form.addEventListener('submit', (e)=> {
+            e.preventDefault()
+            let message = e.target.message.value 
+            let srv_msg = document.getElementById("srv_msg") 
+            let msg_id = "{{msg_id}}"
+            chatSocket.send(JSON.stringify({
+                'srv_msg':srv_msg,'message':message,username : "{{request.user.username}}", user : "{{request.user}}", "msg_id":msg_id
+            }))
+            form.reset()
+        })
+        // let srv_msg = document.getElementById("srv_msg") 
+        console.log("1"+srv_msg)
+    </script>
+</body>
+</html>
